@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>혈당 세이퍼 - 위험도 평가 및 피드백</title>
+  <style>
+    /* 기본 초기화 및 폰트 설정 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+    }
+
+    body {
+      background-color: #f2f5f9;
+      color: #1e293b;
+      display: flex;
+      justify-content: center;
+      padding: 24px 16px;
+      line-height: 1.5;
+    }
+
+    /* 모바일/태블릿 앱 형태의 메인 컨테이너 */
+    .app-container {
+      width: 100%;
+      max-width: 520px;
+      background-color: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* 상단 네비게이션 & 프로그레스 바 */
+    .top-header {
+      background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+      color: #ffffff;
+      padding: 20px 24px 24px;
+    }
+
+    .header-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0.95;
+    }
+
+    .step-badge {
+      background-color: rgba(255, 255, 255, 0.2);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .page-subtitle {
+      font-size: 13px;
+      opacity: 0.88;
+      margin-top: 4px;
+    }
+
+    /* 본문 영역 */
+    .content-body {
+      padding: 24px;
+    }
+
+    /* 섹션 공통 제목 */
+    .section-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* 1. 식단 및 혈당 수치 요약 카드 */
+    .meal-summary-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 24px;
+    }
+
+    .meal-photo {
+      width: 84px;
+      height: 84px;
+      border-radius: 12px;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 1px solid #cbd5e1;
+    }
+
+    .meal-info {
+      flex: 1;
+    }
+
+    .meal-name-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .meal-name {
+      font-size: 17px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .meal-kcal {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f766e;
+      background-color: #ccfbf1;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .sugar-flow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: #ffffff;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      font-size: 13px;
+    }
+
+    .sugar-box {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sugar-box span:first-child {
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    .sugar-box strong {
+      font-size: 14px;
+      color: #1e293b;
+    }
+
+    .sugar-box.highlight strong {
+      color: #ea580c;
+      font-size: 15px;
+    }
+
+    .arrow-icon {
+      color: #94a3b8;
+      font-weight: bold;
+      margin: 0 2px;
+    }
+
+    .rise-tag {
+      margin-left: auto;
+      background-color: #ffedd5;
+      color: #c2410c;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 3px 7px;
+      border-radius: 6px;
+    }
+
+    /* 2. 4단계 위험도 평가 미터기 & 배지 */
+    .risk-card {
+      background-color: #fff7ed;
+      border: 1.5px solid #fdba74;
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .risk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: #ea580c;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 800;
+      padding: 8px 18px;
+      border-radius: 999px;
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.28);
+      margin-bottom: 10px;
+    }
+
+    .risk-headline {
+      font-size: 18px;
+      font-weight: 800;
+      color: #9a3412;
+      margin-bottom: 4px;
+    }
+
+    .risk-subtext {
+      font-size: 13px;
+      color: #7c2d12;
+      margin-bottom: 18px;
+    }
+
+    /* 4단계 시각적 미터기 바 */
+    .meter-wrapper {
+      position: relative;
+      padding-top: 22px;
+    }
+
+    /* 현재 단계 포인터 (3단계 위치: 약 62.5% 지점) */
+    .meter-pointer {
+      position: absolute;
+      top: 0;
+      left: 62.5%;
+      transform: translateX(-50%);
+      background-color: #1e293b;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    .meter-pointer::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 4px 4px 0;
+      border-style: solid;
+      border-color: #1e293b transparent transparent;
+    }
+
+    .meter-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .meter-segment {
+      height: 12px;
+      border-radius: 6px;
+      opacity: 0.35;
+      transition: all 0.2s ease;
+    }
+
+    .seg-1 { background-color: #10b981; } /* 1단계 안전 */
+    .seg-2 { background-color: #f59e0b; } /* 2단계 주의 */
+    .seg-3 { background-color: #f97316; opacity: 1; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #f97316; } /* 3단계 경고 활성화 */
+    .seg-4 { background-color: #ef4444; } /* 4단계 위험 */
+
+    .meter-labels {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    .meter-labels span.active {
+      color: #c2410c;
+      font-weight: 800;
+    }
+
+    /* 3. 맞춤형 피드백 및 대안 제시 카드 */
+    .feedback-section {
+      margin-bottom: 24px;
+    }
+
+    .feedback-box {
+      background-color: #f8fafc;
+      border-left: 4px solid #ea580c;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .feedback-box.solution {
+      background-color: #f0fdf4;
+      border-left-color: #16a34a;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .solution-thumb {
+      width: 64px;
+      height: 64px;
+      border-radius: 10px;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 1px solid #bbf7d0;
+    }
+
+    .feedback-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #1e293b;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .feedback-text {
+      font-size: 14px;
+      color: #334155;
+      line-height: 1.55;
+    }
+
+    .feedback-text strong {
+      color: #0f172a;
+      background-color: rgba(254, 240, 138, 0.6);
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+
+    .action-tip-list {
+      margin-top: 10px;
+      padding-left: 18px;
+      font-size: 13px;
+      color: #166534;
+    }
+
+    .action-tip-list li {
+      margin-bottom: 4px;
+    }
+
+    /* 4. 하단 액션 버튼 영역 */
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .btn {
+      padding: 15px 16px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      text-align: center;
+      text-decoration: none;
+      transition: transform 0.12s ease, background-color 0.2s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background-color: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+
+    .btn-secondary:hover {
+      background-color: #e2e8f0;
+    }
+
+    .btn-primary {
+      background-color: #0f766e;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(15, 118, 110, 0.25);
+    }
+
+    .btn-primary:hover {
+      background-color: #115e59;
+    }
+
+    /* 하단 기준 및 출처 안내 */
+    .footer-note {
+      background-color: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 14px 24px;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="app-container">
+    <!-- 상단 헤더 -->
+    <header class="top-header">
+      <div class="header-top-row">
+        <div class="brand-title">🩸 혈당 세이퍼 : 내 손안의 당뇨 파수꾼</div>
+        <span class="step-badge">3 / 4 단계</span>
+      </div>
+      <h1 class="page-title">위험도 평가 및 맞춤 피드백</h1>
+      <p class="page-subtitle">질병관리청·대한당뇨병학회 표준 수치 기반 분석 결과입니다.</p>
+    </header>
+
+    <div class="content-body">
+      <!-- 1. 분석 대상 식단 및 예측 혈당 요약 -->
+      <div class="section-label">
+        <span>분석된 식단 및 혈당 예측</span>
+        <span>식전 상태: 당뇨병 기준(126↑)</span>
+      </div>
+      <section class="meal-summary-card">
+        <img 
+          src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=300&q=80" 
+          alt="선택한 음식 라면 이미지" 
+          class="meal-photo"
+        />
+        <div class="meal-info">
+          <div class="meal-name-row">
+            <span class="meal-name">라면 (1인분)</span>
+            <span class="meal-kcal">500 kcal</span>
+          </div>
+          <div class="sugar-flow">
+            <div class="sugar-box">
+              <span>식전 혈당</span>
+              <strong>155 mg/dL</strong>
+            </div>
+            <span class="arrow-icon">→</span>
+            <div class="sugar-box highlight">
+              <span>식후 예상</span>
+              <strong>210 mg/dL</strong>
+            </div>
+            <span class="rise-tag">+55 상승</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. 4단계 위험도 평가 배지 및 미터기 -->
+      <div class="section-label">
+        <span>식후 혈당 위험도 진단</span>
+        <span>기준: 200~299 mg/dL</span>
+      </div>
+      <section class="risk-card">
+        <div class="risk-badge">
+          <span>⚠️ 3단계 경고 (위험)</span>
+        </div>
+        <h2 class="risk-headline">식후 고혈당 위험 구간에 진입합니다</h2>
+        <p class="risk-subtext">대한당뇨병학회 식후 당뇨 진단 기준(200mg/dL 이상)을 초과했습니다.</p>
+
+        <!-- 4단계 미터기 -->
+        <div class="meter-wrapper">
+          <div class="meter-pointer">현재 3단계 (210)</div>
+          <div class="meter-bar">
+            <div class="meter-segment seg-1" title="1단계 안전: 140 미만"></div>
+            <div class="meter-segment seg-2" title="2단계 주의: 140~199"></div>
+            <div class="meter-segment seg-3" title="3단계 경고: 200~299"></div>
+            <div class="meter-segment seg-4" title="4단계 위험: 300 이상"></div>
+          </div>
+          <div class="meter-labels">
+            <span>1단계 안전<br>(<140)</span>
+            <span>2단계 주의<br>(140~199)</span>
+            <span class="active">3단계 경고<br>(200~299)</span>
+            <span>4단계 위험<br>(300↑)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. 맞춤형 피드백 및 대안 제시 -->
+      <div class="section-label">
+        <span>맞춤형 행동 가이드 & 식단 대안</span>
+      </div>
+      <section class="feedback-section">
+        <!-- 진단 피드백 -->
+        <div class="feedback-box">
+          <div class="feedback-title">🚨 혈당 급상승 주의</div>
+          <p class="feedback-text">
+            "이 식단은 <strong>탄수화물 비율이 높아 식후 혈당이 급상승</strong>할 수 있어요. 식후 당뇨 진단 기준을 초과하는 수치이므로 섭취 전 식단 조절이 필요합니다."
+          </p>
+        </div>
+
+        <!-- 대안 제시 -->
+        <div class="feedback-box solution">
+          <img 
+            src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=200&q=80" 
+            alt="채소 샐러드 대안 식단 이미지" 
+            class="solution-thumb"
+          />
+          <div>
+            <div class="feedback-title">🥗 이렇게 바꿔서 드셔보세요!</div>
+            <p class="feedback-text">
+              "<strong>채소나 단백질을 먼저 섭취</strong>하고 면(또는 밥) 양을 <strong>1/3 정도 줄여보는 건 어떨까요?</strong>"
+            </p>
+            <ul class="action-tip-list">
+              <li>식사 전 샐러드(혈당 상승 +2)나 삶은 달걀 1개를 먼저 드세요.</li>
+              <li>식후 20~30분 가벼운 산책을 하면 혈당 스파이크를 완화할 수 있습니다.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. 하단 버튼 -->
+      <div class="button-group">
+        <a href="#edit-meal" class="btn btn-secondary">식단 수정하기</a>
+        <a href="#save-record" class="btn btn-primary">이대로 기록 저장하기</a>
+      </div>
+    </div>
+
+    <!-- 출처 표기 -->
+    <footer class="footer-note">
+      * 의학 기준 출처: 질병관리청(KDCA) 국가건강정보포털 및 대한당뇨병학회(KDA) 혈당 관리 가이드라인<br />
+      * 이미지 출처: Unsplash 무료 고화질 이미지 (라면 사진: Spencer Davis / 샐러드 사진: Anna Pelzer)
+    </footer>
+  </main>
+
+</body>
+</html>
